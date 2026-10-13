@@ -27,6 +27,11 @@ public class PlayerMove : MonoBehaviour
 
     void Update()
     {
+        // freeze the player on the level-complete / game-over / win screens
+        if (GameManager.Instance != null &&
+            GameManager.Instance.state != GameManager.State.Playing)
+            return;
+
         if (Input.GetKeyDown(KeyCode.Escape)) LockCursor(false);
         if (useMouseTurn && Input.GetMouseButtonDown(0)) LockCursor(true);
 
