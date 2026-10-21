@@ -71,18 +71,18 @@ public class GameManager : MonoBehaviour
             EndLevel(string.IsNullOrEmpty(nextScene) ? State.Won : State.LevelComplete);
     }
 
-
-public void ApplyTimePenalty(float seconds)
-{
-    if (state != State.Playing) return;
-
-    timeLeft = Mathf.Max(0f, timeLeft - seconds);
-
-    if (timeLeft <= 0f)
+    public void ApplyTimePenalty(float seconds)
     {
-        EndLevel(State.GameOver);
+        if (state != State.Playing) return;
+        if (seconds <= 0f || float.IsNaN(seconds) || float.IsInfinity(seconds)) return;
+
+        timeLeft = Mathf.Max(0f, timeLeft - seconds);
+
+        if (timeLeft <= 0f)
+        {
+            EndLevel(State.GameOver);
+        }
     }
-}
 
     void EndLevel(State s)
     {
