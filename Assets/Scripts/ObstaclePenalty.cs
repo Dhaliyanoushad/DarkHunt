@@ -13,14 +13,13 @@ public class ObstaclePenalty : MonoBehaviour
         ApplyPenalty(other);
     }
 
-    private void OnTriggerStay(Collider other)
-    {
-        ApplyPenalty(other);
-    }
-
     private void ApplyPenalty(Collider other)
     {
         if (other.GetComponentInParent<PlayerMove>() == null)
+            return;
+
+        var manager = GameManager.Instance;
+        if (manager == null || manager.state != GameManager.State.Playing)
             return;
 
         if (Time.time - lastHitTime < cooldown)
@@ -28,13 +27,7 @@ public class ObstaclePenalty : MonoBehaviour
 
         lastHitTime = Time.time;
 
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.ApplyTimePenalty(
-                penaltySeconds
-            );
-        }
-
-        Debug.Log("Obstacle hit! -5 seconds");
+        manager.ApplyTimePenalty(penaltySeconds);
+        Debug.Log($"Obstacle hit! -{penaltySeconds} seconds");
     }
 }

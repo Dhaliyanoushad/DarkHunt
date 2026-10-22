@@ -1,6 +1,7 @@
 
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class MovingObstacle : MonoBehaviour
 {
     public Vector3 moveDirection = Vector3.right;
@@ -8,13 +9,15 @@ public class MovingObstacle : MonoBehaviour
     public float moveSpeed = 2f;
 
     private Vector3 startPosition;
+    private Rigidbody body;
 
     void Start()
     {
-        startPosition = transform.position;
+        body = GetComponent<Rigidbody>();
+        startPosition = body.position;
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (GameManager.Instance != null &&
             GameManager.Instance.state != GameManager.State.Playing)
@@ -29,7 +32,7 @@ public class MovingObstacle : MonoBehaviour
             moveDistance
         );
 
-        transform.position = startPosition +
-            moveDirection.normalized * offset;
+        body.MovePosition(startPosition +
+            moveDirection.normalized * offset);
     }
 }

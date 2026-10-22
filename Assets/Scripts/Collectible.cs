@@ -4,6 +4,7 @@ using UnityEngine;
 public class Collectible : MonoBehaviour
 {
     public float spinSpeed = 60f;   // slow spin so it catches the flashlight beam
+    bool collected;
 
     void Update()
     {
@@ -12,6 +13,10 @@ public class Collectible : MonoBehaviour
 
     public void Collect()
     {
+        if (collected || GameManager.Instance == null ||
+            GameManager.Instance.state != GameManager.State.Playing) return;
+        collected = true;
+
         if (GameManager.Instance != null)
             GameManager.Instance.ItemCollected();
 

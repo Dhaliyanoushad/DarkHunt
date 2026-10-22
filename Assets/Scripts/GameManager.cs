@@ -22,8 +22,14 @@ public class GameManager : MonoBehaviour
 
     static int objectsFoundBefore;   // objects from levels already finished
     float timeLeft;
-    Texture2D dim;
-    GUIStyle hud, prompt, big, mid, btn;
+    float startingTime;
+    public float RemainingTime => timeLeft;
+    public float CompletionTime => Mathf.Max(0f, startingTime - timeLeft);
+    public string BestTimeText => LevelProgress.BestTimeLabel(
+        LevelProgress.LevelForScene(SceneManager.GetActiveScene().name));
+    public int RunObjectsFound => objectsFoundBefore;
+    public float LastPenaltySeconds { get; private set; }
+    public float LastPenaltyAt { get; private set; } = float.NegativeInfinity;
 
     void Awake()
     {
@@ -31,17 +37,14 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         state = State.Playing;
         timeLeft = timeLimit;
+        startingTime = timeLimit;
 
         if (SceneManager.GetActiveScene().name == firstScene)
             objectsFoundBefore = 0;
 
-        total = FindObjectsByType<Collectible>(FindObjectsSortMode.None).Length;
+        total = FindObjectsByType<Collectible>().Length;
         if (total == 0)
             Debug.LogWarning("GameManager: no Collectible objects found in this scene.");
-
-        dim = new Texture2D(1, 1);
-        dim.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.8f));
-        dim.Apply();
     }
 
     void OnDestroy()
@@ -76,6 +79,8 @@ public class GameManager : MonoBehaviour
         if (state != State.Playing) return;
         if (seconds <= 0f || float.IsNaN(seconds) || float.IsInfinity(seconds)) return;
 
+        LastPenaltySeconds = seconds;
+        LastPenaltyAt = Time.unscaledTime;
         timeLeft = Mathf.Max(0f, timeLeft - seconds);
 
         if (timeLeft <= 0f)
@@ -86,16 +91,23 @@ public class GameManager : MonoBehaviour
 
     void EndLevel(State s)
     {
+        if (state != State.Playing) return;
         state = s;
-        if (s != State.GameOver) objectsFoundBefore += found;
+        if (s == State.LevelComplete || s == State.Won)
+        {
+            objectsFoundBefore += found;
+            if (total > 0 && found >= total)
+                LevelProgress.RecordCompletion(SceneManager.GetActiveScene().name, CompletionTime);
+        }
 
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    void OnButton()
+    public void Advance()
     {
+        if (state == State.Playing) return;
         Time.timeScale = 1f;
         switch (state)
         {
@@ -111,74 +123,18 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // ---------- on-screen text (no Canvas needed) ----------
-
-    void BuildStyles()
+    public void RestartRun()
     {
-        int s = Mathf.Max(14, Screen.height / 30);
-
-        hud = new GUIStyle(GUI.skin.label)
-        { fontSize = s, alignment = TextAnchor.UpperRight, fontStyle = FontStyle.Bold };
-        prompt = new GUIStyle(GUI.skin.label)
-        { fontSize = s, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-        big = new GUIStyle(GUI.skin.label)
-        { fontSize = s * 3, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-        mid = new GUIStyle(GUI.skin.label)
-        { fontSize = Mathf.RoundToInt(s * 1.3f), alignment = TextAnchor.MiddleCenter };
-        btn = new GUIStyle(GUI.skin.button)
-        { fontSize = Mathf.RoundToInt(s * 1.3f), fontStyle = FontStyle.Bold };
-
-        hud.normal.textColor = Color.white;
-        prompt.normal.textColor = Color.white;
-        big.normal.textColor = Color.white;
-        mid.normal.textColor = Color.white;
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(firstScene);
     }
 
-    void OnGUI()
+    public static void ResetRunProgress() => objectsFoundBefore = 0;
+
+    public void OpenLevelSelection()
     {
-        if (hud == null) BuildStyles();
-
-        float w = Screen.width;
-        float h = Screen.height;
-
-        if (state == State.Playing)
-        {
-            hud.normal.textColor = timeLeft <= 10f ? Color.red : Color.white;
-            GUI.Label(new Rect(w - 430f, 10f, 420f, h * 0.2f),
-                $"{levelTitle}\nTIME: {Mathf.CeilToInt(timeLeft)}\nOBJECTS: {found} / {total}", hud);
-
-            if (PlayerInteract.Looking != null)
-                GUI.Label(new Rect(0f, h * 0.62f, w, h * 0.08f),
-                    $"Press {PlayerInteract.PickupKey} to pick up", prompt);
-            return;
-        }
-
-        GUI.DrawTexture(new Rect(0f, 0f, w, h), dim);
-
-        string title, sub, label;
-        switch (state)
-        {
-            case State.LevelComplete:
-                title = $"{levelTitle} COMPLETE";
-                sub = $"Objects found: {found} / {total}";
-                label = "CONTINUE";
-                break;
-            case State.GameOver:
-                title = "TIME'S UP";
-                sub = $"GAME OVER   ({found} / {total} found)";
-                label = "RETRY";
-                break;
-            default:
-                title = "YOU ESCAPED";
-                sub = $"OBJECTS FOUND: {objectsFoundBefore}";
-                label = "PLAY AGAIN";
-                break;
-        }
-
-        GUI.Label(new Rect(0f, h * 0.22f, w, h * 0.15f), title, big);
-        GUI.Label(new Rect(0f, h * 0.38f, w, h * 0.08f), sub, mid);
-
-        if (GUI.Button(new Rect(w * 0.5f - w * 0.12f, h * 0.55f, w * 0.24f, h * 0.09f), label, btn))
-            OnButton();
+        ResetRunProgress();
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(LevelProgress.SelectionScene);
     }
 }
