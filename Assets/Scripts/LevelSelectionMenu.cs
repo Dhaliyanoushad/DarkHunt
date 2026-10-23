@@ -49,6 +49,8 @@ public sealed class LevelSelectionMenu : MonoBehaviour
                 : "Choose a level to play.", caption, DarkHuntUITheme.Muted);
         if (DrawButton(new Rect(left, cy + 160, width, 40), "RESET PROGRESS", false, !loading))
             confirmingReset = true;
+        if (DrawButton(new Rect(left, cy + 212, width, 40), "BACK TO MAIN MENU", false,
+            !loading && !confirmingReset)) BackToMainMenu();
     }
 
     void DrawLevel(int level, Rect rect)
@@ -84,6 +86,14 @@ public sealed class LevelSelectionMenu : MonoBehaviour
             GameManager.ResetRunProgress();
             confirmingReset = false;
         }
+    }
+
+    public void BackToMainMenu()
+    {
+        if (loading || confirmingReset) return;
+        loading = true;
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("MainMenuDramatic");
     }
 
     public void PlayLevel(int level)
