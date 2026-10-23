@@ -4,7 +4,6 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public sealed class LevelSelectionMenu : MonoBehaviour
 {
-    GUIStyle heading, caption, button, dialogHeading, dialogBody;
     bool loading;
     bool confirmingReset;
 
@@ -18,69 +17,64 @@ public sealed class LevelSelectionMenu : MonoBehaviour
 
     void OnGUI()
     {
-        if (heading == null)
+        DarkHuntChapterTheme.Begin();
+        try
         {
-            heading = DarkHuntUITheme.Style(42, bold: true);
-            caption = DarkHuntUITheme.Style(14, wrap: true);
-            button = DarkHuntUITheme.Style(16);
-            dialogHeading = DarkHuntUITheme.Style(23);
-            dialogBody = DarkHuntUITheme.Style(15, wrap: true);
+            if (confirmingReset)
+            {
+                DrawResetConfirmation();
+                return;
+            }
+            DarkHuntChapterTheme.Title(new Rect(300, 82, 1000, 76), "DARKHUNT", 64);
+            DarkHuntChapterTheme.Text(new Rect(400, 164, 800, 28), "C H O O S E   Y O U R   N I G H T M A R E", 16, color: DarkHuntChapterTheme.Ash);
+            DarkHuntChapterTheme.Fill(new Rect(768, 208, 64, 2), DarkHuntChapterTheme.Blood);
+            for (int level = 1; level <= LevelProgress.LevelCount; level++)
+                DrawLevel(level, new Rect(148 + (level - 1) * 444, 242, 416, 474));
+            int nextLocked = LevelProgress.HighestUnlockedLevel + 1;
+            DarkHuntChapterTheme.Text(new Rect(470, 772, 660, 48),
+                nextLocked <= LevelProgress.LevelCount
+                    ? $"Complete Chapter {nextLocked - 1:00} to unlock Chapter {nextLocked:00}."
+                    : "Every door is open. Enter again if you dare.", 15, color: DarkHuntChapterTheme.Ash);
+            if (DarkHuntChapterTheme.Button(new Rect(1152, 776, 300, 44), "RESET PROGRESS", enabled: !loading))
+                confirmingReset = true;
+            if (DarkHuntChapterTheme.Button(new Rect(148, 776, 300, 44), "BACK TO MAIN MENU",
+                enabled: !loading && !confirmingReset)) BackToMainMenu();
         }
-        DarkHuntUITheme.Fill(new Rect(0, 0, Screen.width, Screen.height), DarkHuntUITheme.Background);
-
-        if (confirmingReset)
-        {
-            DrawResetConfirmation();
-            return;
-        }
-
-        float width = Mathf.Min(360, Screen.width - 40);
-        float left = (Screen.width - width) / 2;
-        float cy = Screen.height / 2;
-        DarkHuntUITheme.Label(new Rect(left - 12, cy - 224, width + 24, 56), "DARKHUNT", heading, DarkHuntUITheme.Text);
-        DarkHuntUITheme.Fill(new Rect(Screen.width / 2 - 20, cy - 162, 40, 1), DarkHuntUITheme.Highlight);
-        DarkHuntUITheme.Label(new Rect(left, cy - 146, width, 24), "LEVEL SELECTION", caption, DarkHuntUITheme.Muted);
-        for (int level = 1; level <= LevelProgress.LevelCount; level++)
-            DrawLevel(level, new Rect(left, cy - 110 + (level - 1) * 76, width, 42));
-        int nextLocked = LevelProgress.HighestUnlockedLevel + 1;
-        DarkHuntUITheme.Label(new Rect(left - 16, cy + 118, width + 32, 24),
-            nextLocked <= LevelProgress.LevelCount
-                ? $"Complete Level {nextLocked - 1} to unlock Level {nextLocked}."
-                : "Choose a level to play.", caption, DarkHuntUITheme.Muted);
-        if (DrawButton(new Rect(left, cy + 160, width, 40), "RESET PROGRESS", false, !loading))
-            confirmingReset = true;
-        if (DrawButton(new Rect(left, cy + 212, width, 40), "BACK TO MAIN MENU", false,
-            !loading && !confirmingReset)) BackToMainMenu();
+        finally { DarkHuntChapterTheme.End(); }
     }
 
     void DrawLevel(int level, Rect rect)
     {
         bool unlocked = LevelProgress.IsUnlocked(level);
-        if (DrawButton(rect, "LEVEL " + level + (unlocked ? "  /  PLAY" : "  /  LOCKED"),
-            true, unlocked && !loading)) PlayLevel(level);
-        DarkHuntUITheme.Label(new Rect(rect.x, rect.yMax + 6, rect.width, 20),
-            LevelProgress.BestTimeLabel(level), caption, DarkHuntUITheme.Muted);
+        DarkHuntChapterTheme.Panel(rect);
+        DarkHuntChapterTheme.Doorway(new Rect(rect.x, rect.y, rect.width, 260), unlocked);
+        DarkHuntChapterTheme.Text(new Rect(rect.x + 30, rect.y + 30, rect.width - 60, 124),
+            level.ToString("00"), 112, true, new Color(0.67f, 0.59f, 0.58f, unlocked ? 0.32f : 0.14f));
+        if (!unlocked) DarkHuntChapterTheme.Lock(new Vector2(rect.center.x, rect.y + 199));
+        DarkHuntChapterTheme.Text(new Rect(rect.x + 24, rect.y + 230, rect.width - 48, 24),
+            unlocked ? "T H E   D O O R   A W A I T S" : "L O C K E D", 12,
+            color: unlocked ? DarkHuntChapterTheme.Ash : DarkHuntChapterTheme.Bone);
+        DarkHuntChapterTheme.Text(new Rect(rect.x + 24, rect.y + 278, rect.width - 48, 24),
+            "CHAPTER " + level.ToString("00"), 13, color: DarkHuntChapterTheme.Ash);
+        DarkHuntChapterTheme.Text(new Rect(rect.x + 24, rect.y + 310, rect.width - 48, 40),
+            DarkHuntChapterTheme.ChapterName(level), 26, true);
+        DarkHuntChapterTheme.Fill(new Rect(rect.center.x - 22, rect.y + 364, 44, 1), DarkHuntChapterTheme.Blood);
+        DarkHuntChapterTheme.Text(new Rect(rect.x + 24, rect.y + 375, rect.width - 48, 28),
+            LevelProgress.BestTimeLabel(level), 15, color: DarkHuntChapterTheme.Ash);
+        if (DarkHuntChapterTheme.Button(new Rect(rect.x + 24, rect.y + 416, rect.width - 48, 42),
+            "ENTER NIGHTMARE", true, unlocked && !loading)) PlayLevel(level);
     }
-
-    bool DrawButton(Rect rect, string label, bool primary, bool enabled = true, bool danger = false) =>
-        DarkHuntUITheme.Button(rect, label, button, primary, enabled, danger);
 
     void DrawResetConfirmation()
     {
-        float width = Mathf.Min(420, Screen.width - 40);
-        float left = (Screen.width - width) / 2;
-        float top = Screen.height / 2 - 126;
-        DarkHuntUITheme.Panel(new Rect(left, top, width, 252));
-        DarkHuntUITheme.Label(new Rect(left + 24, top + 24, width - 48, 34),
-            "RESET PROGRESS?", dialogHeading, DarkHuntUITheme.Text);
-        DarkHuntUITheme.Fill(new Rect(left + 24, top + 72, width - 48, 1), DarkHuntUITheme.Border);
-        DarkHuntUITheme.Label(new Rect(left + 28, top + 88, width - 56, 60),
-            "Delete all best times and level unlocks?\nLevels 2 and 3 will be locked again.", dialogBody, DarkHuntUITheme.Muted);
-        float buttonWidth = (width - 60) / 2;
-        if (DrawButton(new Rect(left + 24, top + 180, buttonWidth, 48), "CANCEL", false))
+        DarkHuntChapterTheme.Panel(new Rect(480, 296, 640, 308));
+        DarkHuntChapterTheme.Title(new Rect(512, 322, 576, 48), "RESET PROGRESS?", 32);
+        DarkHuntChapterTheme.Fill(new Rect(512, 388, 576, 1), DarkHuntChapterTheme.Crimson);
+        DarkHuntChapterTheme.Text(new Rect(512, 408, 576, 32), "Delete all best times and level unlocks?", 18);
+        DarkHuntChapterTheme.Text(new Rect(512, 444, 576, 28), "Levels 2 and 3 will be locked again.", 16, color: DarkHuntChapterTheme.Ash);
+        if (DarkHuntChapterTheme.Button(new Rect(512, 520, 276, 48), "CANCEL"))
             confirmingReset = false;
-        if (DrawButton(new Rect(left + 36 + buttonWidth, top + 180, buttonWidth, 48),
-            "RESET", true, danger: true))
+        if (DarkHuntChapterTheme.Button(new Rect(812, 520, 276, 48), "RESET", true))
         {
             LevelProgress.ResetSavedProgress();
             GameManager.ResetRunProgress();

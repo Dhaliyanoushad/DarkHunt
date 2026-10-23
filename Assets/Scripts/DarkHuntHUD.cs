@@ -9,7 +9,16 @@ public sealed class DarkHuntHUD : MonoBehaviour
     GUIStyle text;
     GUIStyle button;
 
-    void Awake() => game = GetComponent<GameManager>();
+    // Read-only presentation snapshot: GameManager remains the sole writer of scores.
+    bool hadPersonalBest;
+    float previousPersonalBest;
+
+    void Awake()
+    {
+        game = GetComponent<GameManager>();
+        hadPersonalBest = LevelProgress.TryGetBestTime(LevelProgress.LevelForScene(
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name), out previousPersonalBest);
+    }
 
     void Label(float x, float y, float w, float h, string value, int size, Color color,
         TextAnchor alignment = TextAnchor.MiddleLeft, bool bold = false)
@@ -73,6 +82,11 @@ public sealed class DarkHuntHUD : MonoBehaviour
 
     void DrawResult()
     {
+        if (game.state != GameManager.State.GameOver)
+        {
+            DrawVictory();
+            return;
+        }
         bool won = game.state == GameManager.State.Won;
         bool lost = game.state == GameManager.State.GameOver;
         float cx = Screen.width / 2;
@@ -98,4 +112,51 @@ public sealed class DarkHuntHUD : MonoBehaviour
         if (Button(cx - buttonWidth / 2, panel.y + 312, buttonWidth, "LEVEL SELECTION", false))
             game.OpenLevelSelection();
     }
+
+    void DrawVictory()
+    {
+        bool won = game.state == GameManager.State.Won;
+        int level = LevelProgress.LevelForScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        bool newRecord = !hadPersonalBest || game.CompletionTime < previousPersonalBest;
+        DarkHuntChapterTheme.Begin();
+        try
+        {
+            DarkHuntChapterTheme.Title(new Rect(250, 96, 1100, 90), "YOU SURVIVED", 76);
+            DarkHuntChapterTheme.Text(new Rect(450, 194, 700, 28), "N I G H T M A R E   C O N Q U E R E D", 16,
+                color: DarkHuntChapterTheme.Ash);
+            DarkHuntChapterTheme.Panel(new Rect(400, 250, 800, 470));
+            DarkHuntChapterTheme.Emblem(new Vector2(800, 302));
+            DarkHuntChapterTheme.Text(new Rect(450, 346, 700, 24), "CHAPTER COMPLETED  /  " + level.ToString("00"), 13,
+                color: DarkHuntChapterTheme.Ash);
+            DarkHuntChapterTheme.Title(new Rect(440, 380, 720, 42), DarkHuntChapterTheme.ChapterName(level), 32);
+            DarkHuntChapterTheme.Fill(new Rect(456, 446, 688, 1), DarkHuntChapterTheme.Crimson);
+            DarkHuntChapterTheme.Text(new Rect(456, 466, 320, 26), "COMPLETION TIME", 13, color: DarkHuntChapterTheme.Ash);
+            DarkHuntChapterTheme.Text(new Rect(824, 466, 320, 26), "PERSONAL BEST", 13, color: DarkHuntChapterTheme.Ash);
+            DarkHuntChapterTheme.Text(new Rect(456, 500, 320, 52),
+                game.CompletionTime.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s", 42, true);
+            // Use the same saved best value as the HUD and chapter menu.
+            string best = LevelProgress.TryGetBestTime(level, out float seconds)
+                ? seconds.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "s" : "--";
+            DarkHuntChapterTheme.Text(new Rect(824, 500, 320, 52), best, 42, true);
+            DarkHuntChapterTheme.Fill(new Rect(800, 472, 1, 78), DarkHuntChapterTheme.Crimson);
+            if (newRecord)
+            {
+                DarkHuntChapterTheme.Fill(new Rect(642, 578, 316, 32), DarkHuntChapterTheme.Crimson);
+                DarkHuntChapterTheme.Text(new Rect(642, 578, 316, 32), "NEW PERSONAL RECORD", 13);
+            }
+            DarkHuntChapterTheme.Text(new Rect(456, 632, 688, 30),
+                won ? $"Objects collected: {game.RunObjectsFound}" : $"Objects collected: {game.found} / {game.total}",
+                16, color: DarkHuntChapterTheme.Ash);
+            DarkHuntChapterTheme.Fill(new Rect(764, 690, 72, 1), DarkHuntChapterTheme.Blood);
+            // Identical actions to the original successful-completion screen.
+            if (DarkHuntChapterTheme.Button(new Rect(400, 756, 250, 52), won ? "PLAY AGAIN" : "NEXT NIGHTMARE", true))
+                game.Advance();
+            if (DarkHuntChapterTheme.Button(new Rect(675, 756, 250, 52), "RESTART FROM LEVEL 1"))
+                game.RestartRun();
+            if (DarkHuntChapterTheme.Button(new Rect(950, 756, 250, 52), "CHOOSE CHAPTER"))
+                game.OpenLevelSelection();
+        }
+        finally { DarkHuntChapterTheme.End(); }
+    }
+
 }
