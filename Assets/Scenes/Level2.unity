@@ -1278,7 +1278,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   levelTitle: LEVEL 2
   timeLimit: 45
-  nextScene:
+  nextScene: Level3
   firstScene: Level1
 --- !u!4 &1238146493
 Transform:

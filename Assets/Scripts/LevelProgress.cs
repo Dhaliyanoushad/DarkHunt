@@ -5,7 +5,7 @@ public static class LevelProgress
 {
     public const string SaveKey = "DarkHunt.HighestUnlockedLevel";
     public const string SelectionScene = "LevelSelection";
-    public const int LevelCount = 2;
+    public const int LevelCount = 3;
 
     public static int HighestUnlockedLevel =>
         Mathf.Clamp(PlayerPrefs.GetInt(SaveKey, 1), 1, LevelCount);
@@ -54,9 +54,9 @@ public static class LevelProgress
             float.IsInfinity(completionSeconds)) return;
 
         bool changed = false;
-        if (level == 1 && !IsUnlocked(2))
+        if (level < LevelCount && IsUnlocked(level) && !IsUnlocked(level + 1))
         {
-            PlayerPrefs.SetInt(SaveKey, 2);
+            PlayerPrefs.SetInt(SaveKey, level + 1);
             changed = true;
         }
         if (!TryGetBestTime(level, out float best) || completionSeconds < best)
